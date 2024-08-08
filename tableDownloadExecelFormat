@@ -1,0 +1,74 @@
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+
+const TableToExcel = () => {
+    const [tbData, setTbData] = useState([]);
+    const excelTitle = "My Table Data";
+
+    const downloadExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(tbData);
+        const worksheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        worksheetData.unshift([]);
+        worksheetData.unshift([excelTitle]);
+
+        const newWorksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+        const merge = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+        if (!newWorksheet['!merges']) newWorksheet['!merges'] = [];
+        newWorksheet['!merges'].push(...merge);
+
+        newWorksheet['A1'].s = {
+            font: { sz: 16, bold: true },
+            alignment: { vertical: 'center', horizontal: 'center' }
+        };
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, newWorksheet, 'Sheet1');
+
+        // Customize the file name
+        const fileName = `abs.xlsx`;
+
+        // Generate Excel file and trigger download with the custom name
+        XLSX.writeFile(workbook, fileName);
+    };
+
+    useEffect(() => {
+        const getData = async () => {
+            try {
+                const response = await axios.get('https://jsonplaceholder.typicode.com/todos');
+                setTbData(response?.data || []);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        getData();
+    }, []);
+
+    return (
+        <div>
+            <h3>Table Data</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tbData.map((row) => (
+                        <tr key={row.id}>
+                            <td>{row.id}</td>
+                            <td>{row.title}</td>
+                            <td>{row.completed ? 'Yes' : 'No'}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <button onClick={downloadExcel}>Download Excel</button>
+        </div>
+    );
+};
+
+export default TableToExcel;
